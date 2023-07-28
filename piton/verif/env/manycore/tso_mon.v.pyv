@@ -28,7 +28,7 @@
 // as well as the LSU.
 //
 ////////////////////////////////////////////////////////
-
+`ifndef MINIMAL_MONITORING
 `ifndef VERILATOR
 
 `define FPOP1_RQ 5'b01010
@@ -1292,3 +1292,4 @@ endtask
 `endif	// ifdef GATE_SIM
 endmodule
 `endif // ifndef VERILATOR
+`endif // ifndef MINIMAL_MONITORING

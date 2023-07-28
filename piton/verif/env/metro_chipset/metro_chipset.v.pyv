@@ -1,0 +1,844 @@
+// Modified by Princeton University on June 9th, 2015
+// ========== Copyright Header Begin ==========================================
+//
+// OpenSPARC T1 Processor File: cmp_top.v
+// Copyright (c) 2006 Sun Microsystems, Inc.  All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES.
+//
+// The above named program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public
+// License version 2 as published by the Free Software Foundation.
+//
+// The above named program is distributed in the hope that it will be
+// useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+//
+// You should have received a copy of the GNU General Public
+// License along with this work; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+// ========== Copyright Header End ============================================
+////////////////////////////////////////////////////////
+
+`ifndef USE_TEST_TOP // don't compile if user wants to use deprecated TOPs
+`include "sys.h"
+`include "iop.h"
+`include "cross_module.tmp.h"
+`include "ifu.tmp.h"
+`include "define.tmp.h"
+`include "piton_system.vh"
+
+
+<%
+    from pyhplib import *
+%>
+
+<%
+DMBR_BIN_NUM = 10
+import pyhplib
+from riscvlib import *
+import os
+from pyhplib import *
+import riscvlib
+import time
+
+if PITON_ARIANE:
+    devices = pyhplib.ReadDevicesXMLFile()
+
+    # just use a default frequency for device tree generation if not defined
+    sysFreq = 50000000
+    if 'CONFIG_SYS_FREQ' in os.environ:
+        sysFreq = int(os.environ['CONFIG_SYS_FREQ'])
+
+    timeStamp = time.strftime("%b %d %Y %H:%M:%S", time.localtime())
+    gen_riscv_dts(devices, PITON_NUM_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
+    get_bootrom_info(devices, PITON_NUM_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
+%>
+
+`ifdef PITON_DPI
+import "DPI-C" function longint read_64b_call (input longint addr);
+import "DPI-C" function void write_64b_call (input longint addr, input longint data);
+import "DPI-C" function int drive_iob ();
+import "DPI-C" function int get_cpx_word (int index);
+import "DPI-C" function void report_pc (longint thread_pc);
+import "DPI-C" function void init_jbus_model_call(string str, int oram);
+
+`ifndef VERILATOR
+// MPI Yummy functions
+import "DPI-C" function void initialize();
+import "DPI-C" function void finalize();
+import "DPI-C" function int getRank();
+import "DPI-C" function int getSize();
+import "DPI-C" function void barrier();
+
+import "DPI-C" function byte unsigned mpi_receive_finish();
+import "DPI-C" function void mpi_send_finish(input byte unsigned message, input int rank);
+import "DPI-C" function byte unsigned mpi_receive_yummy(input int origin, input int flag);
+import "DPI-C" function void mpi_send_yummy(input byte unsigned message, input int dest, input int rank, input int flag);
+import "DPI-C" function void mpi_send_data(input longint unsigned data, input byte unsigned valid, input int dest, input int rank, input int flag);
+import "DPI-C" function longint unsigned mpi_receive_data(input int origin, output byte unsigned valid, input int flag);
+import "DPI-C" function void mpi_send_all_noc(input longint unsigned data_0, input byte unsigned valid_0, 
+                                              input longint unsigned data_1, input byte unsigned valid_1, 
+                                              input longint unsigned data_2, input byte unsigned valid_2, 
+                                              input int dest, input int rank, input int flag);
+import "DPI-C" function void mpi_receive_all_noc(output longint unsigned data_0, output byte unsigned valid_0, 
+                                                 output longint unsigned data_1, output byte unsigned valid_1, 
+                                                 output longint unsigned data_2, output byte unsigned valid_2,
+                                                 input int origin, input int flag);
+import "DPI-C" function void mpi_send_all_yummy(input byte unsigned yummy_0, input byte unsigned yummy_1, input byte unsigned yummy_2, 
+                                                input int dest, input int rank, input int flag);
+import "DPI-C" function void mpi_receive_all_yummy(output byte unsigned yummy_0, output byte unsigned yummy_1, output byte unsigned yummy_2, 
+                                                   input int origin, input int flag);
+import "DPI-C" function void mpi_send_all(input longint unsigned data_0, input byte unsigned valid_0, input byte unsigned yummy_0,
+                                          input longint unsigned data_1, input byte unsigned valid_1, input byte unsigned yummy_1,
+                                          input longint unsigned data_2, input byte unsigned valid_2, input byte unsigned yummy_2,
+                                          input int dest, input int rank, input int flag);
+import "DPI-C" function void mpi_receive_all(output longint unsigned data_0, output byte unsigned valid_0, output byte unsigned yummy_0,
+                                             output longint unsigned data_1, output byte unsigned valid_1, output byte unsigned yummy_1,
+                                             output longint unsigned data_2, output byte unsigned valid_2, output byte unsigned yummy_2,
+                                             input int origin, input int flag);
+
+//add metro_stuff
+`endif // ifndef VERILATOR
+`endif // ifdef PITON_DPI
+
+`timescale 1ps/1ps
+module metro_chipset (
+`ifdef VERILATOR
+input reg                             core_ref_clk,
+
+input reg                             sys_rst_n,
+
+input reg                             pll_rst_n,
+
+input reg                             clk_en,
+
+input reg                             pll_bypass,
+input reg [4:0]                       pll_rangea,
+output wire                            pll_lock,
+input reg [1:0]                       clk_mux_sel,
+input reg                             async_mux,
+input                                 diag_done,
+input                                 ok_iob,
+input wire                            processor_offchip_noc1_valid,
+input wire [`NOC_DATA_WIDTH-1:0]      processor_offchip_noc1_data,
+output wire                           processor_offchip_noc1_yummy,
+input wire                            processor_offchip_noc2_valid,
+input wire [`NOC_DATA_WIDTH-1:0]      processor_offchip_noc2_data,
+output wire                           processor_offchip_noc2_yummy,
+input wire                            processor_offchip_noc3_valid,
+input wire [`NOC_DATA_WIDTH-1:0]      processor_offchip_noc3_data,
+output wire                           processor_offchip_noc3_yummy,
+
+output wire                           offchip_processor_noc1_valid,
+output wire [`NOC_DATA_WIDTH-1:0]     offchip_processor_noc1_data,
+input  wire                           offchip_processor_noc1_yummy,
+output wire                           offchip_processor_noc2_valid,
+output wire [`NOC_DATA_WIDTH-1:0]     offchip_processor_noc2_data,
+input  wire                           offchip_processor_noc2_yummy,
+output wire                           offchip_processor_noc3_valid,
+output wire [`NOC_DATA_WIDTH-1:0]     offchip_processor_noc3_data,
+input  wire                           offchip_processor_noc3_yummy,
+
+output wire                           good_end,
+output wire                           bad_end,
+input  wire                           test_ena
+`endif //VERILATOR
+);
+
+//////////////////////
+// Type Declarations
+//////////////////////
+
+`ifndef VERILATOR
+reg                             core_ref_clk;
+reg                             sys_rst_n;
+reg                             pll_rst_n;
+reg                             clk_en;
+reg                             pll_bypass;
+reg [4:0]                       pll_rangea;
+wire                            pll_lock = 1'b1;
+reg [1:0]                       clk_mux_sel;
+reg                             async_mux;
+reg                             test_ena;
+wire                            good_end;
+wire                            bad_end;
+// For simulation only, monitor stuff.  Only cross-module referenced
+// do not delete.
+reg                             diag_done;
+`endif // ifndef VERILATOR
+
+reg                             io_clk;
+reg                             jtag_clk;
+reg                             chipset_clk_osc_p;
+reg                             chipset_clk_osc_n;
+reg                             chipset_clk_osc;
+reg                             chipset_clk;
+reg                             mem_clk;
+reg                             spi_sys_clk;
+reg                             chipset_passthru_clk_p;
+reg                             chipset_passthru_clk_n;
+reg                             passthru_clk_osc_p;
+reg                             passthru_clk_osc_n;
+reg                             passthru_chipset_clk_p;
+reg                             passthru_chipset_clk_n;
+
+reg                             jtag_rst_l;
+
+reg                             jtag_modesel;
+reg                             jtag_datain;
+wire                            jtag_dataout;
+
+
+// For simulation only, monitor stuff.  Only cross-module referenced
+// do not delete.
+reg                             fail_flag;
+reg [3:0]                       stub_done;
+reg [3:0]                       stub_pass;
+
+`ifndef VERILATOR
+reg                       processor_offchip_noc1_valid;
+reg [`NOC_DATA_WIDTH-1:0] processor_offchip_noc1_data;
+reg                       processor_offchip_noc1_yummy;
+reg                       processor_offchip_noc2_valid;
+reg [`NOC_DATA_WIDTH-1:0] processor_offchip_noc2_data;
+reg                       processor_offchip_noc2_yummy;
+reg                       processor_offchip_noc3_valid;
+reg [`NOC_DATA_WIDTH-1:0] processor_offchip_noc3_data;
+reg                       processor_offchip_noc3_yummy;
+
+reg                       offchip_processor_noc1_valid;
+reg [`NOC_DATA_WIDTH-1:0] offchip_processor_noc1_data;
+reg                       offchip_processor_noc1_yummy;
+reg                       offchip_processor_noc2_valid;
+reg [`NOC_DATA_WIDTH-1:0] offchip_processor_noc2_data;
+reg                       offchip_processor_noc2_yummy;
+reg                       offchip_processor_noc3_valid;
+reg [`NOC_DATA_WIDTH-1:0] offchip_processor_noc3_data;
+reg                       offchip_processor_noc3_yummy;
+`endif // VERILATOR
+
+////////////////////
+// Simulated Clocks
+////////////////////
+
+`ifndef VERILATOR
+`ifndef USE_FAKE_PLL_AND_CLKMUX
+always #5000 core_ref_clk = ~core_ref_clk;                      // 100MHz
+`else
+always #500 core_ref_clk = ~core_ref_clk;                       // 1000MHz
+`endif
+`endif
+
+`ifndef SYNC_MUX
+always #1429 io_clk = ~io_clk;                                  // 350MHz
+`else
+always @ * io_clk = core_ref_clk;
+`endif
+
+`ifndef VERILATOR
+always #50000 jtag_clk = ~jtag_clk;                             // 10MHz
+
+always #2500 chipset_clk_osc_p = ~chipset_clk_osc_p;            // 200MHz
+always @ * chipset_clk_osc_n = ~chipset_clk_osc_p;
+
+always #5000 chipset_clk_osc = ~chipset_clk_osc;                // 100MHz
+
+always #2500 chipset_clk = ~chipset_clk;                        // 200MHz
+
+always #3333 passthru_clk_osc_p = ~passthru_clk_osc_p;          // 150MHz
+always @ * passthru_clk_osc_n = ~passthru_clk_osc_p;
+
+always #1429 passthru_chipset_clk_p = ~passthru_chipset_clk_p;  // 350MHz
+always @ * passthru_chipset_clk_n = ~passthru_chipset_clk_p;
+
+always #1000 mem_clk = ~mem_clk;                                // 500MHz
+
+always #25000 spi_sys_clk = ~spi_sys_clk;                       // 20MHz
+`endif
+
+////////////////////////////////////////////////////////
+// SIMULATED BOOT SEQUENCE
+////////////////////////////////////////////////////////
+
+int rank;
+int size;
+int dest;
+int checkTestEnd;
+byte unsigned valid_aux_0, valid_aux_1, valid_aux_2;
+longint unsigned data_aux_0, data_aux_1, data_aux_2;
+byte unsigned yummy_aux_0, yummy_aux_1, yummy_aux_2;
+byte test_end;
+
+reg test_exit;
+
+int YUMMY_NOC_1  ;
+int DATA_NOC_1   ;
+int YUMMY_NOC_2  ;
+int DATA_NOC_2   ;
+int YUMMY_NOC_3  ;
+int DATA_NOC_3   ;
+int TEST_FINISH  ;
+int DATA_ALL_NOC ;
+int ALL_YUMMY    ;
+int ALL_NOC      ;
+
+`ifndef VERILATOR
+initial
+begin
+    //$dumpfile("metro_chipset.vcd");
+    //$dumpvars(0, metro_chipset);
+
+    YUMMY_NOC_1  = 0;
+    DATA_NOC_1   = 1;
+    YUMMY_NOC_2  = 2;
+    DATA_NOC_2   = 3;
+    YUMMY_NOC_3  = 4;
+    DATA_NOC_3   = 5;
+    TEST_FINISH  = 6;
+    DATA_ALL_NOC = 7;
+    ALL_YUMMY    = 8;
+    ALL_NOC      = 9;
+
+    test_end = 0;
+
+    //metro initialization
+    initialize();
+    barrier();
+    rank = getRank();
+    size = getSize();
+    $display("METRO_CHIPSET INITIALIZING...");
+    $display("size: %d", size);
+    $display("rank: %d", rank);
+    if (rank==0) begin
+            dest = 1;
+    end else begin
+            dest = 0;
+    end
+    // These are not referenced elsewhere in this module,
+    // but are cross referenced from monitor.v.pyv.  Do not
+    // delete
+    fail_flag = 1'b0;
+    stub_done = 4'b0;
+    stub_pass = 4'b0;
+
+    // Clocks initial value
+    core_ref_clk = 1'b0;
+    io_clk = 1'b0;
+    jtag_clk = 1'b0;
+    chipset_clk_osc_p = 1'b0;
+    chipset_clk_osc_n = 1'b1;
+    chipset_clk_osc = 1'b0;
+    chipset_clk = 1'b0;
+    mem_clk = 1'b0;
+    spi_sys_clk = 1'b0;
+    chipset_passthru_clk_p = 1'b0;
+    chipset_passthru_clk_n = 1'b1;
+    passthru_clk_osc_p = 1'b0;
+    passthru_clk_osc_n = 1'b1;
+    passthru_chipset_clk_p = 1'b0;
+    passthru_chipset_clk_n = 1'b1;
+
+    // Resets are held low at start of boot
+    sys_rst_n = 1'b0;
+    jtag_rst_l = 1'b0;
+    pll_rst_n = 1'b0;
+
+    // Mostly DC signals set at start of boot
+    clk_en = 1'b0;
+    if ($test$plusargs("pll_en"))
+    begin
+        // PLL is disabled by default
+        pll_bypass = 1'b0; // trin: pll_bypass is a switch in the pll; not reliable
+        clk_mux_sel[1:0] = 2'b10; // selecting pll
+    end
+    else
+    begin
+        pll_bypass = 1'b1; // trin: pll_bypass is a switch in the pll; not reliable
+        clk_mux_sel[1:0] = 2'b00; // selecting ref clock
+    end
+    // rangeA = x10 ? 5'b1 : x5 ? 5'b11110 : x2 ? 5'b10100 : x1 ? 5'b10010 : x20 ? 5'b0 : 5'b1;
+    pll_rangea = 5'b00001; // 10x ref clock
+    // pll_rangea = 5'b11110; // 5x ref clock
+    // pll_rangea = 5'b00000; // 20x ref clock
+
+    // JTAG simulation currently not supported here
+    jtag_modesel = 1'b1;
+    jtag_datain = 1'b0;
+
+`ifndef SYNC_MUX
+    async_mux = 1'b1;
+`else
+    async_mux = 1'b0;
+`endif
+
+    // Init JBUS model plus some ORAM stuff
+    if ($test$plusargs("oram"))
+    begin
+`ifndef PITON_DPI
+        $init_jbus_model("mem.image", 1);
+`else // ifndef PITON_DPI
+        init_jbus_model_call("mem.image", 1);
+`endif // ifndef PITON_DPI
+`ifndef METRO_CHIPSET
+`ifndef __ICARUS__
+        force system.chip.ctap_oram_clk_en = 1'b1;
+`endif
+`endif //METRO_CHIPSET
+    end
+    else
+    begin
+`ifndef PITON_DPI
+        $init_jbus_model("mem.image", 0);
+`else // ifndef PITON_DPI
+        $display("init_jbus_model_call");
+        init_jbus_model_call("mem.image", 0);
+`endif // ifndef PITON_DPI
+    end
+
+    processor_offchip_noc1_valid = 0;
+    processor_offchip_noc1_data  = 0;
+    offchip_processor_noc1_yummy = 0;
+    processor_offchip_noc2_valid = 0;
+    processor_offchip_noc2_data  = 0;
+    offchip_processor_noc2_yummy = 0;
+    processor_offchip_noc3_valid = 0;
+    processor_offchip_noc3_data  = 0;
+    offchip_processor_noc3_yummy = 0;
+    test_ena                     = 0;
+
+    // Reset PLL for 100 cycles
+    repeat(100)@(posedge core_ref_clk);
+    pll_rst_n = 1'b1;
+
+    // Wait for PLL lock
+    wait( pll_lock == 1'b1 );
+
+    // After 10 cycles turn on chip-level clock enable
+    repeat(10)@(posedge `CHIP_INT_CLK);
+    clk_en = 1'b1;
+
+    // After 100 cycles release reset
+    repeat(100)@(posedge `CHIP_INT_CLK);
+    sys_rst_n = 1'b1;
+    jtag_rst_l = 1'b1;
+
+    // Wait for SRAM init
+    // trin: 5000 cycles is about the lowest for 64KB L2
+    // 128KB L2 requires at least 10000
+    repeat(5000)@(posedge `CHIP_INT_CLK); // trin: supports at least 512KB L2 per-tile
+
+    diag_done = 1'b1;
+`ifndef METRO_CHIPSET
+`ifndef PITONSYS_IOCTRL
+    // Signal fake IOB to send wake up packet to first tile
+    cmp_top.system.chipset.chipset_impl.ciop_fake_iob.ok_iob = 1'b1;
+`endif // endif PITONSYS_IOCTRL
+`endif // ifndef METRO_CHIPSET
+
+//ok_iob = 1;
+
+//metro code
+
+test_ena = 1;
+test_exit = 0;
+checkTestEnd = 50000;
+
+$display("CHIPSET INITIALIZED");
+@(posedge core_ref_clk);
+while(!test_exit)
+begin
+    #500;
+    test_end = test_end || (good_end==1 || bad_end==1);
+`ifdef MPI_OPT_0
+    //$display("sending_chipset");
+    mpi_send_data(offchip_processor_noc1_data, offchip_processor_noc1_valid, dest, rank, DATA_NOC_1);
+    mpi_send_yummy(processor_offchip_noc1_yummy, dest, rank, YUMMY_NOC_1);
+    
+    mpi_send_data(offchip_processor_noc2_data, offchip_processor_noc2_valid, dest, rank, DATA_NOC_2);
+    mpi_send_yummy(processor_offchip_noc2_yummy, dest, rank, YUMMY_NOC_2);
+
+    mpi_send_data(offchip_processor_noc3_data, offchip_processor_noc3_valid, dest, rank, DATA_NOC_3);
+    mpi_send_yummy(processor_offchip_noc3_yummy, dest, rank, YUMMY_NOC_3);
+
+    //$display("receiving_chipset");
+    processor_offchip_noc1_data = mpi_receive_data(dest, valid_aux_0, DATA_NOC_1);
+    processor_offchip_noc1_valid = valid_aux_0;
+    offchip_processor_noc1_yummy = mpi_receive_yummy(dest, YUMMY_NOC_1);
+
+    processor_offchip_noc2_data = mpi_receive_data(dest, valid_aux_0, DATA_NOC_2);
+    processor_offchip_noc2_valid = valid_aux_0;
+    offchip_processor_noc2_yummy = mpi_receive_yummy(dest, YUMMY_NOC_2);
+
+    processor_offchip_noc3_data = mpi_receive_data(dest, valid_aux_0, DATA_NOC_3);
+    processor_offchip_noc3_valid = valid_aux_0;
+    offchip_processor_noc3_yummy = mpi_receive_yummy(dest, YUMMY_NOC_3);
+`endif //MPI_OPT_0
+`ifdef MPI_OPT_1
+    mpi_send_all_noc(offchip_processor_noc1_data, offchip_processor_noc1_valid,
+                     offchip_processor_noc2_data, offchip_processor_noc2_valid,
+                     offchip_processor_noc3_data, offchip_processor_noc3_valid,
+                     dest, rank, DATA_ALL_NOC);
+    // send yummy
+    mpi_send_yummy(processor_offchip_noc1_yummy, dest, rank, YUMMY_NOC_1);
+    // send yummy
+    mpi_send_yummy(processor_offchip_noc2_yummy, dest, rank, YUMMY_NOC_2);
+    // send yummy
+    mpi_send_yummy(processor_offchip_noc3_yummy, dest, rank, YUMMY_NOC_3);
+
+    // receive data
+    mpi_receive_all_noc(data_aux_0, valid_aux_0,
+                        data_aux_1, valid_aux_1,
+                        data_aux_2, valid_aux_2,
+                        dest, DATA_ALL_NOC);
+
+    processor_offchip_noc1_data  = data_aux_0;
+    processor_offchip_noc2_data  = data_aux_1;
+    processor_offchip_noc3_data  = data_aux_2;
+    processor_offchip_noc1_valid = valid_aux_0;
+    processor_offchip_noc2_valid = valid_aux_1;
+    processor_offchip_noc3_valid = valid_aux_2;
+
+    // receive yummy
+    offchip_processor_noc1_yummy = mpi_receive_yummy(dest, YUMMY_NOC_1);
+    // receive yummy
+    offchip_processor_noc2_yummy = mpi_receive_yummy(dest, YUMMY_NOC_2);
+    // receive yummy
+    offchip_processor_noc3_yummy = mpi_receive_yummy(dest, YUMMY_NOC_3);
+`endif //MPI_OPT_1
+`ifdef MPI_OPT_2
+    // send yummy
+    mpi_send_all_yummy(processor_offchip_noc1_yummy, processor_offchip_noc2_yummy, processor_offchip_noc3_yummy, dest, rank, ALL_YUMMY);
+    // send data
+    mpi_send_data(offchip_processor_noc1_data, offchip_processor_noc1_valid, dest, rank, DATA_NOC_1);
+
+    // send data
+    mpi_send_data(offchip_processor_noc2_data, offchip_processor_noc2_valid, dest, rank, DATA_NOC_2);
+
+    // send data
+    mpi_send_data(offchip_processor_noc3_data, offchip_processor_noc3_valid, dest, rank, DATA_NOC_3);
+
+    // Receive yummy
+    mpi_receive_all_yummy(yummy_aux_0, yummy_aux_1, yummy_aux_2, dest, ALL_YUMMY);
+    offchip_processor_noc1_yummy = yummy_aux_0;
+    offchip_processor_noc2_yummy = yummy_aux_1;
+    offchip_processor_noc3_yummy = yummy_aux_2;
+    
+    // receive data
+    processor_offchip_noc1_data = mpi_receive_data(dest, valid_aux_0, DATA_NOC_1);
+    processor_offchip_noc1_valid = valid_aux_0;
+
+    processor_offchip_noc2_data = mpi_receive_data(dest, valid_aux_0, DATA_NOC_2);
+    processor_offchip_noc2_valid = valid_aux_0;
+
+    processor_offchip_noc3_data = mpi_receive_data(dest, valid_aux_0, DATA_NOC_3);
+    processor_offchip_noc3_valid = valid_aux_0;
+`endif //MPI_OPT_2
+`ifdef MPI_OPT_3
+    // send yummy
+    mpi_send_all_yummy(processor_offchip_noc1_yummy, processor_offchip_noc2_yummy, processor_offchip_noc3_yummy, dest, rank, ALL_YUMMY);
+
+    // send data
+    mpi_send_all_noc(offchip_processor_noc1_data, offchip_processor_noc1_valid,
+                     offchip_processor_noc2_data, offchip_processor_noc2_valid,
+                     offchip_processor_noc3_data, offchip_processor_noc3_valid,
+                     dest, rank, DATA_ALL_NOC);
+
+    // Receive yummy
+    mpi_receive_all_yummy(yummy_aux_0, yummy_aux_1, yummy_aux_2, dest, ALL_YUMMY);
+    offchip_processor_noc1_yummy = yummy_aux_0;
+    offchip_processor_noc2_yummy = yummy_aux_1;
+    offchip_processor_noc3_yummy = yummy_aux_2;
+
+    // receive data
+    mpi_receive_all_noc(data_aux_0, valid_aux_0,
+                        data_aux_1, valid_aux_1,
+                        data_aux_2, valid_aux_2,
+                        dest, DATA_ALL_NOC);
+
+    processor_offchip_noc1_data  = data_aux_0;
+    processor_offchip_noc2_data  = data_aux_1;
+    processor_offchip_noc3_data  = data_aux_2;
+    processor_offchip_noc1_valid = valid_aux_0;
+    processor_offchip_noc2_valid = valid_aux_1;
+    processor_offchip_noc3_valid = valid_aux_2;
+`endif //MPI_OPT_3
+`ifdef MPI_OPT_4
+    // send data
+    mpi_send_all(offchip_processor_noc1_data, offchip_processor_noc1_valid, processor_offchip_noc1_yummy,
+                 offchip_processor_noc2_data, offchip_processor_noc2_valid, processor_offchip_noc2_yummy,
+                 offchip_processor_noc3_data, offchip_processor_noc3_valid, processor_offchip_noc3_yummy,
+                 dest, rank, ALL_NOC);
+        
+    // receive data
+    mpi_receive_all(data_aux_0, valid_aux_0, yummy_aux_0,
+                    data_aux_1, valid_aux_1, yummy_aux_1,
+                    data_aux_2, valid_aux_2, yummy_aux_2,
+                    dest, ALL_NOC);
+    
+    processor_offchip_noc1_data  = data_aux_0; 
+    processor_offchip_noc1_valid = valid_aux_0;
+    processor_offchip_noc2_data  = data_aux_1; 
+    processor_offchip_noc2_valid = valid_aux_1;
+    processor_offchip_noc3_data  = data_aux_2; 
+    processor_offchip_noc3_valid = valid_aux_2;
+    offchip_processor_noc1_yummy = yummy_aux_0;
+    offchip_processor_noc2_yummy = yummy_aux_1;
+    offchip_processor_noc3_yummy = yummy_aux_2; 
+`endif //MPI_OPT_4
+    #500;
+    if(checkTestEnd==0)
+    begin
+        mpi_send_finish(test_end, rank);
+        checkTestEnd = 10000;
+        test_exit = test_end;
+    end else begin
+        checkTestEnd--;
+    end
+end
+$display("Trace done: METRO_CHIPSET");
+finalize();
+$finish;
+end
+`endif
+
+`ifdef VERILATOR
+`ifndef METRO_CHIPSET
+always @(posedge ok_iob) begin
+    cmp_top.system.chipset.chipset_impl.ciop_fake_iob.ok_iob = 1'b1;
+end
+`endif // ifndef METRO_CHIPSET
+`endif
+
+////////////////////////////////////////////////////////
+// SYNTHESIZABLE CHIPSET
+///////////////////////////////////////////////////////
+
+
+chipset chipset(
+    .chipset_clk(core_ref_clk),
+
+    .rst_n(sys_rst_n),
+
+    .piton_prsnt_n(1'b0),
+    .piton_ready_n(1'b0),
+
+    //`ifdef VERILATOR
+    `ifdef METRO_CHIPSET
+    .good_end(good_end),
+    .bad_end(bad_end),
+    .test_ena(test_ena),
+    `endif //METRO_CHIPSET
+    //`endif //VERILATOR
+
+    // Synchronous with core_ref_clk (same as io_clk in this case) and no virtual channels
+    .processor_offchip_noc1_valid   (processor_offchip_noc1_valid),
+    .processor_offchip_noc1_data    (processor_offchip_noc1_data),
+    .processor_offchip_noc1_yummy   (processor_offchip_noc1_yummy),
+    .processor_offchip_noc2_valid   (processor_offchip_noc2_valid),
+    .processor_offchip_noc2_data    (processor_offchip_noc2_data),
+    .processor_offchip_noc2_yummy   (processor_offchip_noc2_yummy),
+    .processor_offchip_noc3_valid   (processor_offchip_noc3_valid),
+    .processor_offchip_noc3_data    (processor_offchip_noc3_data),
+    .processor_offchip_noc3_yummy   (processor_offchip_noc3_yummy),
+
+    .offchip_processor_noc1_valid   (offchip_processor_noc1_valid),
+    .offchip_processor_noc1_data    (offchip_processor_noc1_data),
+    .offchip_processor_noc1_yummy   (offchip_processor_noc1_yummy),
+    .offchip_processor_noc2_valid   (offchip_processor_noc2_valid),
+    .offchip_processor_noc2_data    (offchip_processor_noc2_data),
+    .offchip_processor_noc2_yummy   (offchip_processor_noc2_yummy),
+    .offchip_processor_noc3_valid   (offchip_processor_noc3_valid),
+    .offchip_processor_noc3_data    (offchip_processor_noc3_data),
+    .offchip_processor_noc3_yummy   (offchip_processor_noc3_yummy),
+
+    // DRAM and I/O interfaces
+`ifndef PITONSYS_NO_MC
+`ifdef PITON_FPGA_MC_DDR3
+    // FPGA DDR MC interface, currently not supported in simulation
+    .init_calib_complete(),
+    .ddr_addr(),
+    .ddr_ba(),
+    .ddr_cas_n(),
+    .ddr_ck_n(),
+    .ddr_ck_p(),
+    .ddr_cke(),
+    .ddr_ras_n(),
+    .ddr_reset_n(),
+    .ddr_we_n(),
+    .ddr_dq(),
+    .ddr_dqs_n(),
+    .ddr_dqs_p(),
+    .ddr_cs_n(),
+    .ddr_dm(),
+    .ddr_odt(),
+`endif // endif PITON_FPGA_MC_DDR3
+`endif // endif PITONSYS_NO_MC
+
+`ifdef PITONSYS_IOCTRL
+`ifdef PITONSYS_UART
+    // UART interface for bootloading and
+    // serial port interface.  Currently
+    // not supported in simulation
+    .uart_tx(),
+    .uart_rx(),
+`endif // endif PITONSYS_UART
+
+`ifdef PITONSYS_SPI
+    // SPI interface for boot device and disk.
+    // Currently not supported in simulation
+    .spi_data_in(),
+    .spi_data_out(),
+    .spi_clk_out(),
+    .spi_cs_n(),
+`endif // endif PITONSYS_SPI
+`endif // endif PITONSYS_IOCTRL
+
+    // Switches
+`ifdef PITON_NOC_POWER_CHIPSET_TEST
+    .sw({4'bz, 4'd`PITON_NOC_POWER_CHIPSET_TEST_HOP_COUNT}),
+`else // ifndef PITON_NOC_POWER_CHIPSET_TEST
+    .sw(),
+`endif // endif PITON_NOC_POWER_CHIPSET_TEST
+
+    // Do not provide any functionality
+    .leds()
+
+`ifdef PITON_ARIANE
+    ,
+    // Debug
+    .ndmreset_o                     (                   ), // non-debug module reset
+    .dmactive_o                     (                   ), // debug module is active
+    .debug_req_o                    (                   ), // async debug request
+    .unavailable_i                  ( '0                ), // communicate whether the hart is unavailable (e.g.: power down)
+    // JTAG
+    .tck_i                          ( '0                    ),
+    .tms_i                          ( '0                    ),
+    .trst_ni                        ( '0                    ),
+    .td_i                           ( '0                    ),
+    .td_o                           (                        ),
+    .tdo_oe_o                       (                            ),
+    //CLINT
+    .rtc_i                          ( '0                        ), // Real-time clock in (usually 32.768 kHz)
+    .timer_irq_o                    (                   ), // Timer interrupts
+    .ipi_o                          (                   ), // software interrupt (a.k.a inter-process-interrupt)
+    // PLIC
+    .irq_o                          (                  )  // level sensitive IR lines, mip & sip (async)
+`endif
+);
+
+////////////////////////////////////////////////////////
+// MONITOR STUFF
+////////////////////////////////////////////////////////
+
+
+`ifndef DISABLE_ALL_MONITORS
+
+    // this is the T1 sparc core monitor
+    monitor   monitor(
+        .clk    (`CHIP_INT_CLK),
+        .cmp_gclk  (`CHIP_INT_CLK),
+        .rst_l     (sys_rst_n)
+        );
+
+`ifndef MINIMAL_MONITORING
+    integer j;
+
+    // Tri: slam init is taken out because it's too complicated to extend to 64 cores
+    // slam_init slam_init () ;
+
+    // The only thing that we will "slam init" is the integer register file
+    //  and it is randomized. For some reason if we left it as X's some tests will fail
+
+`ifndef METRO_CHIPSET
+`ifndef VERILATOR
+    // T1's TSO monitor, stripped of all L2 references
+    tso_mon tso_mon(`CHIP_INT_CLK, `CHIP.rst_n_inter_sync);
+`endif
+`endif //METRO_CHIPSET
+
+`ifndef METRO_CHIPSET
+    // L15 MONITORS
+    cmp_l15_messages_mon l15_messages_mon(
+        .clk (`CHIP_INT_CLK)
+        );
+
+    // DMBR MONITOR
+    dmbr_mon dmbr_mon (
+        .clk(`CHIP_INT_CLK)
+     );
+
+    //L2 MONITORS
+    `ifdef FAKE_L2
+    `else
+    l2_mon l2_mon(
+        .clk (`CHIP_INT_CLK)
+    );
+    `endif
+
+    //only works if clk == chipset_clk
+    //async_fifo_mon async_fifo_mon(
+    //   .clk (core_ref_clk)
+    //);
+
+    jtag_mon jtag_mon(
+        .clk (jtag_clk)
+        );
+
+    iob_mon iob_mon(
+        .clk (chipset_clk)
+    );
+    // sas, more debug info
+`endif // ifndef METRO_CHIPSET
+
+    // turn on sas interface after a delay
+//    reg   need_sas_sparc_intf_update;
+//    initial begin
+//        need_sas_sparc_intf_update  = 0;
+//        #12500;
+//        need_sas_sparc_intf_update  = 1;
+//    end // initial begin
+
+`ifdef PITON_OST1
+    sas_intf  sas_intf(/*AUTOINST*/
+        // Inputs
+        .clk       (`CHIP_INT_CLK),      // Templated
+        .rst_l     (`CHIP.rst_n_inter_sync));       // Templated
+`endif
+
+`ifdef PITON_OST1
+    // create sas tasks
+    sas_tasks sas_tasks(/*AUTOINST*/
+        // Inputs
+        .clk      (`CHIP_INT_CLK),      // Templated
+        .rst_l        (`CHIP.rst_n_inter_sync));       // Templated
+`endif
+
+`ifdef PITON_OST1
+    // sparc pipe flow monitor
+    sparc_pipe_flow sparc_pipe_flow(/*AUTOINST*/
+        // Inputs
+        .clk  (`CHIP_INT_CLK));         // Templated
+`endif
+
+`ifndef METRO_CHIPSET
+    manycore_network_mon network_mon (`CHIP_INT_CLK);
+`endif // ifndef METRO_CHIPSET
+
+`endif // MINIMAL_MONITORING
+`endif // DISABLE_ALL_MONITORS
+    // Alexey
+    // UART monitor
+    /*reg      prev_tx_state;
+    always @(posedge core_ref_clk)
+        prev_tx_state <= tx;
+
+    always @(posedge core_ref_clk)
+        if (prev_tx_state != tx) begin
+            $display("UART: TX changed to %d at", tx, $time);
+        end*/
+
+endmodule // cmp_top
+
+`endif

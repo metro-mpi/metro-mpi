@@ -86,6 +86,12 @@
 
 module chipset(
 
+`ifndef METRO_TILE
+    output wire                                 good_end,
+    output wire                                 bad_end,
+    input  wire                                 test_ena,
+`endif
+
 `ifdef F1_BOARD
     input sys_clk,
 `else
@@ -700,8 +706,10 @@ end
 
 `ifndef PITON_BOARD
     `ifndef PITONSYS_INC_PASSTHRU
+    `ifndef PITON_NO_CHIP_BRIDGE
         assign io_clk_loopback = io_clk;
-    `endif
+    `endif // endif PITON_NO_CHIP_BRIDGE
+    `endif // endif PITONSYS_INC_PASSTHRU
 
     `ifdef PITON_CLKS_CHIPSET
         // If we are generating clocks, they are just the same as
@@ -1239,6 +1247,11 @@ chipset_impl_noc_power_test  chipset_impl (
     .test_start         (test_start         ),
     .uart_rst_out_n     (uart_rst_out_n     ),
     .invalid_access_o   (invalid_access     ),
+`ifndef METRO_TILE
+    .good_end(good_end),
+    .bad_end(bad_end),
+    .test_ena(test_ena),
+`endif
 
 `ifdef PITON_NOC_POWER_CHIPSET_TEST
     .noc_power_test_hop_count (noc_power_test_hop_count),

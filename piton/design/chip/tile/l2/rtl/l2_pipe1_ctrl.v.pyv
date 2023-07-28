@@ -332,8 +332,8 @@ module l2_pipe1_ctrl(
 
 
 <%
-L2_OWNER_BITS = 6
-L2_DIR_ARRAY_WIDTH = 64
+L2_OWNER_BITS = 10
+L2_DIR_ARRAY_WIDTH = 1024
 %>
 
 localparam y = 1'b1;

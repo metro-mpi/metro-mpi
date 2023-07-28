@@ -197,7 +197,7 @@ print("`define L2_DATA_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS*L2_WAYS
 
 `define L2_DIR_INDEX_WIDTH      `L2_TAG_INDEX_WIDTH+`L2_WAYS_WIDTH
 //`define L2_DIR_INDEX_WIDTH      10 
-`define L2_DIR_SHARER_BITS      64
+`define L2_DIR_SHARER_BITS      1024
 `define L2_DIR_ARRAY_WIDTH      `L2_DIR_SHARER_BITS
 <%
 print("`define L2_DIR_ARRAY_HEIGHT     %d" % (L2_NUM_SETS*L2_WAYS))
@@ -228,7 +228,7 @@ print("`define L2_DIR_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS*L2_WAYS,
 
 `define L2_SUBLINE_BITS         4
 
-`define L2_OWNER_BITS           6
+`define L2_OWNER_BITS           10
 //`define L2_OWNER_X_WIDTH        3
 //`define L2_OWNER_Y_WIDTH        3
 //`define L2_OWNER_XY             2:0
@@ -246,7 +246,7 @@ print("`define L2_DIR_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS*L2_WAYS,
 `define L2_LRU_CLR              1'b0
 
 
-`define L2_STATE_WAY_WIDTH      15
+`define L2_STATE_WAY_WIDTH      19
 `define L2_STATE_DATA_WIDTH     `L2_STATE_WAY_WIDTH*`L2_WAYS
 `define L2_STATE_ARRAY_WIDTH    `L2_STATE_DATA_WIDTH+`L2_WAYS_WIDTH+`L2_WAYS
 <%
@@ -257,11 +257,11 @@ print("`define L2_STATE_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS,2)))
 // State decomposition 
 
 `define L2_STATE_SDID           9:0
-`define L2_STATE_OWNER          5:0
-`define L2_STATE_SUBLINE        9:6
-`define L2_STATE_DI             10
-`define L2_STATE_VD             12:11
-`define L2_STATE_MESI           14:13
+`define L2_STATE_OWNER          9:0
+`define L2_STATE_SUBLINE        13:10
+`define L2_STATE_DI             14
+`define L2_STATE_VD             16:15
+`define L2_STATE_MESI           18:17
 `define L2_STATE_LRU            `L2_STATE_DATA_WIDTH+`L2_WAYS-1:`L2_STATE_DATA_WIDTH
 `define L2_STATE_RB             `L2_STATE_ARRAY_WIDTH-1:`L2_STATE_DATA_WIDTH+`L2_WAYS
 `define L2_STATE_DATA           `L2_STATE_DATA_WIDTH-1:0
@@ -328,12 +328,12 @@ print("`define L2_STATE_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS,2)))
 //`define L2_MSHR_SRC_X           84:77
 //`define L2_MSHR_SRC_Y           92:85
 //`define L2_MSHR_SRC_FBITS       96:93
-//`define L2_MSHR_SDID            106:97
-//`define L2_MSHR_LSID            112:107      
-//`define L2_MSHR_MISS_LSID       118:113
-//`define L2_MSHR_SMC_MISS        119
-//`define L2_MSHR_RECYCLED        120
-//`define L2_MSHR_INV_FWD_PENDING 121
+//`define L2_MSHR_SDID            110:97
+//`define L2_MSHR_LSID            120:111      
+//`define L2_MSHR_MISS_LSID       130:121
+//`define L2_MSHR_SMC_MISS        131
+//`define L2_MSHR_RECYCLED        132
+//`define L2_MSHR_INV_FWD_PENDING 133
 
 
 //SMC array

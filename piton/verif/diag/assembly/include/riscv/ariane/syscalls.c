@@ -127,7 +127,7 @@ void printstr(const char* s)
   printbuf(s, strlen(s));
 }
 
-int __attribute__((weak)) main(int argc, char** argv)
+int __attribute__((weak)) main(int argc, int** argv)
 {
   // single-threaded programs override this function.
   printstr("Implement main(), foo!\n");
@@ -151,8 +151,8 @@ void _init(int cid, int nc)
   volatile static uint32_t finish_sync0 = 0;
   volatile static uint32_t finish_sync1 = 0;
 
-  char num[2]   = {cid, nc};
-  char *argv[1] = {num};
+  int num[2]   = {cid, nc};
+  int *argv[1] = {num};
   int ret = main(2, argv);
 
   ATOMIC_OP(finish_sync0, 1, add, w);

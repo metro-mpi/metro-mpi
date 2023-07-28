@@ -121,7 +121,7 @@ print("`define PITON_Y_TILES %d"   % PITON_Y_TILES)
 `define MSG_ADDR                119:80
 
 `define MSG_AMO_MASK1           135:128
-`define MSG_LSID                147:142
+`define MSG_LSID                147:138
 `define MSG_SDID                157:148
 `define MSG_SRC_FBITS           161:158
 `define MSG_SRC_Y               169:162
@@ -141,7 +141,7 @@ print("`define PITON_Y_TILES %d"   % PITON_Y_TILES)
 
 // HEADER 3
 `define MSG_AMO_MASK1_           7:0
-`define MSG_LSID_                19:14 // 147-128:142-128
+`define MSG_LSID_                19:10 // 147-128:138-128
 `define MSG_SDID_                29:20
 `define MSG_OPTIONS_3_           29:0
 `define MSG_SRC_FBITS_           33:30
@@ -378,10 +378,10 @@ print("`define PITON_Y_TILES %d"   % PITON_Y_TILES)
 //Additional fields for Sharer Domain ID and Logical Sharer ID
 //For coherence domain restriction only
 
-`define MSG_SDID_WIDTH          10
-`define MSG_LSID_WIDTH          6
-`define MSG_HDID_WIDTH          10
-`define MSG_LHID_WIDTH          6
+`define MSG_SDID_WIDTH          14
+`define MSG_LSID_WIDTH          10
+`define MSG_HDID_WIDTH          14
+`define MSG_LHID_WIDTH          10
 
 `define MSG_AMO_MASK0_WIDTH     8
 `define MSG_AMO_MASK1_WIDTH     8

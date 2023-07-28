@@ -19,6 +19,8 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 // ========== Copyright Header End ============================================
+`ifndef MINIMAL_MONITORING
+`ifdef PITON_OST1
 `include "define.tmp.h"
 `include "cross_module.tmp.h"
 `ifdef PITON_PROTO
@@ -1413,4 +1415,5 @@ endmodule // sas_tasks
           // verilog-library-directories:("." "../../../design/rtl")
           // verilog-library-extensions:(".v" ".h")
           // End:
-
+`endif //ifdef PITON_OST1
+`endif //ifndef MINIMAL_MONITORING

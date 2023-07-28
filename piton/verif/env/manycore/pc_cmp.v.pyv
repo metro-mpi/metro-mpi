@@ -92,6 +92,9 @@ integer       max, time_tmp, trap_count;
 reg           max_cycle;
 integer      good_trap_count;
 integer      bad_trap_count;
+//argment for stub
+integer    stub_mask;
+reg [63:0]     stub_good;
 reg          good_flag;
 reg         local_diag_done;
 

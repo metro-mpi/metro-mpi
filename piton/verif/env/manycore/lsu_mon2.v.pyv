@@ -27,7 +27,7 @@
 // 		as well as some checkers. Run pal to get .v using:
 // 		pal -r -o lsu_mon2.v lsu_mon2.vpal
 ////////////////////////////////////////////////////////
-
+`ifndef MINIMAL_MONITORING
 `include "define.tmp.h"
 `include "cross_module.tmp.h"
 `include "sys.h"
@@ -2596,4 +2596,4 @@ wire   [3:0]  count;
     assign out[2] = (count > 4'h2);
 
 endmodule
-
+`endif // ifndef MINIMAL_MONITORING

@@ -37,7 +37,7 @@
 //
 //====================================================================================================
 
-
+`ifndef MINIMAL_MONITORING
 <%
     import os
     import sys
@@ -723,3 +723,4 @@ endtask
 
 
 endmodule
+`endif //ifndef MINIMAL_MONITORING 

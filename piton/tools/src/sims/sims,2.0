@@ -110,6 +110,10 @@ $os_cpu_dot .= ".";
 $os_cpu_dot .= `uname -m`;
 $os_cpu_dot =~ s/\n//g;
 
+my $pton_x_tiles="";
+my $pton_y_tiles="";
+my $pton_num_tiles="";
+
 ################################################################################
 # configure Getopt::Long
 ################################################################################
@@ -237,7 +241,9 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'vlt_run' => 0,
         'version' => 0,
         'vfile' => [],
-        'mem_init_py' => ""
+        'mem_init_py' => "",
+        'cyclesCheckFinish' => 100000,
+        'cyclesCheckFinishAfter' => 10000,
        );
 
 ################################################################################
@@ -341,6 +347,7 @@ GetOptions (\%opt,
             'sims_config=s',
             'simslog!',
             'simslog_name=s',
+            'vlt_build' => 0,
             'build_id=s',
            ) ;
 
@@ -357,6 +364,8 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_OST1")     if ($opt{ost1} || $opt{pico_
 push (@{$opt{config_cpp_args}}, "-DFLIST_PICO")     if ($opt{pico} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
+
+push (@{$opt{config_cpp_args}}, "-DSIM_USE_DPI")      if ($opt{dpi} || $opt{vlt_build}) ;
 
 ################################################################################
 # define $result_dir
@@ -1488,6 +1497,10 @@ sub generic_sim_build
       }
       # lib_path needs to be before vcs_build_args
       $build_cmd .= $lib_path;
+      if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+        $build_cmd .= "-CFLAGS -DX_TILES=$opt{x_tiles} " ;
+        $build_cmd .= "-CFLAGS -DY_TILES=$opt{y_tiles} " ;
+      }
     }
     if ($opt{ncv_build}) {
       $build_cmd = "LD_LIBRARY_PATH=";
@@ -1515,15 +1528,20 @@ sub generic_sim_build
     }
 	
     if ($opt{vlt_build}) {
-      $build_cmd = "verilator -cc " ;
-      $build_cmd .= "-exe $dv_root/tools/verilator/my_top.cpp " ;
+      $build_cmd = "verilator -cc -build " ;
+      foreach my $top_n (@{$opt{toplevel}}) {
+        $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+      }
+      # improvable
+      foreach my $top_n (@{$opt{toplevel}}) {
+        $build_cmd .= "--top-module $top_n ";
+      }
       $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
       $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
       $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
       $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
       $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
       $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
-      $build_cmd .= "--top-module cmp_top " ;
       $build_cmd .= "-Wno-fatal " ;
       $build_cmd .= "-Wno-BLKANDNBLK " ;
       $build_cmd .= "-Wno-TIMESCALEMOD " ;
@@ -1534,6 +1552,18 @@ sub generic_sim_build
       $build_cmd .= "-CFLAGS -lstdc++ " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+
+     #print("====================================\n");
+     #print("$pton_x_tiles");
+     #print("$ENV{PITON_X_TILES}");
+     #print("====================================\n");
+
+     #die("dsfs");
+      
+      if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+        $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
+        $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+      }
     }
     if ($opt{other_sim_build}) {
       if (($opt{other_sim_build_cmd}) eq "") {
@@ -1572,16 +1602,16 @@ sub generic_sim_build
       die ("DIE. failed building model") if ($?) ;
     }
 
-    if ($opt{vlt_build}) {
-      $build_cmd = "make -j -C $model_path/obj_dir -f Vcmp_top.mk Vcmp_top" ;
+    #if ($opt{vlt_build}) {
+    #  $build_cmd = "make -j -C $model_path/obj_dir -f Vcmp_top.mk Vcmp_top" ;
 
-      print "$prg: $build_cmd\n";
+    #  print "$prg: $build_cmd\n";
 
-      if (! $opt{dryrun}) {
-        system ($build_cmd) ;
-        die ("DIE. failed building model") if ($?) ;
-      }
-    }
+    #  if (! $opt{dryrun}) {
+    #    system ($build_cmd) ;
+    #    die ("DIE. failed building model") if ($?) ;
+    #  }
+    #}
 
     # go back to where the script was invoked
     chdir $cur_dir ;
@@ -1686,9 +1716,16 @@ sub generic_sim_run
 
     # run the command
     if ($opt{vcs_run}) {
-      $cmd .= "collect " if ($opt{vcs_prof}) ;
-      $cmd .= "$model_path/simv " ;
-      $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+      if ($opt{sys} eq "metro_chipset") {
+        $cmd .= "mpirun -np 1 -map-by core --oversubscribe --output-filename filename ./metro_chipset/rel-0.1/simv " ;
+        $cmd .= " " ;
+        $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+        $cmd .= " : -np $ENV{PITON_NUM_TILES} --oversubscribe --output-filename filename ./metro_tile/rel-0.1/simv " ;
+      } else {
+        $cmd .= "collect " if ($opt{vcs_prof}) ;
+        $cmd .= "$model_path/simv " ;
+        $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+      }
     }
 
     if ($opt{ncv_run}) {
@@ -1802,9 +1839,28 @@ if ($opt{riv_run}) {
     }	
 
     if ($opt{vlt_run}) {
-      $cmd .= "$model_path/obj_dir/Vcmp_top " ;
-      $cmd .= " " ;
-      $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+
+      if ($opt{sys} eq "metro_chipset") {
+        #### --oversubscribe --output-filename filename
+        $cmd .= "mpirun -np 1 --oversubscribe --output-filename filename $model_path/obj_dir/Vmetro_chipset " ;
+        $cmd .= join (" ", $opt{cyclesCheckFinish}) ;
+        $cmd .= " " ;
+        $cmd .= join (" ", $opt{cyclesCheckFinishAfter}) ;
+        $cmd .= " " ;
+        $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+                $cmd .= " : -np $ENV{PITON_NUM_TILES} --oversubscribe --output-filename filename $model_path/../../metro_tile/rel-0.1/obj_dir/Vmetro_tile ";
+	    $cmd .= join (" ", $opt{cyclesCheckFinish}) ;
+        $cmd .= " " ;
+        $cmd .= join (" ", $opt{cyclesCheckFinishAfter}) ;
+        #$cmd .= join (" ", @{$opt{sim_run_args}}) ;
+      }
+      else {
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $cmd .= "$model_path/obj_dir/V$top_n " ;
+        }
+        $cmd .= " " ;
+        $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+      }
     }
 
     if ($opt{other_sim_run}) {
@@ -2605,6 +2661,8 @@ sub parse_args
             'dmbr!',
             'dmbr_checker!',
             'oram!',
+            'cyclesCheckFinish=i',
+            'cyclesCheckFinishAfter=i',
            );
 
   # print out all command line arguments + config arguments
@@ -2729,9 +2787,9 @@ sub parse_args
   $ENV{PITON_RV64_PLATFORM}   = "1" if ($opt{rv64_platform});
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
 
-  my $pton_x_tiles="";
-  my $pton_y_tiles="";
-  my $pton_num_tiles="";
+  #my $pton_x_tiles="";
+  #my $pton_y_tiles="";
+  #my $pton_num_tiles="";
 
   # conveniently sets up the tile RTL defines for manycore model
   if ($opt{x_tiles} && $opt{y_tiles}) {
@@ -3241,6 +3299,12 @@ MISC
 
     -help
             prints this
+
+    -cyclesCheckFinish
+            how many cycles to start checking the finish
+    
+    -cyclesCheckFinishAfter
+            once we reach the start checkign finish, frequency of cycles to check again
 
 IT SYSTEM RELATED
 

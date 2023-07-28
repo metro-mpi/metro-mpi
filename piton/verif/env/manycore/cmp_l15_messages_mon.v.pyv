@@ -20,7 +20,7 @@
 //
 // ========== Copyright Header End ============================================
 ////////////////////////////////////////////////////////
-
+`ifndef MINIMAL_MONITORING
 `include "sys.h"
 `include "iop.h"
 `include "define.tmp.h"
@@ -1342,3 +1342,4 @@ for i in range (PITON_NUM_TILES):
 //     //
 
 endmodule
+`endif //ifndef MINIMAL_MONITORING

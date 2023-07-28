@@ -87,6 +87,12 @@ module chipset_impl(
     // invalid access inside packet filter
     output                                      invalid_access_o,
 
+`ifndef METRO_TILE
+    output wire                                 good_end,
+    output wire                                 bad_end,
+    input  wire                                 test_ena,
+`endif
+
 `ifndef PITONSYS_NO_MC
 `ifdef PITON_FPGA_MC_DDR3
 `ifndef F1_BOARD
@@ -507,8 +513,23 @@ test_end_checker test_end_checker(
     .test_bad_end           (test_bad_end)
 );
 `else
-    assign test_good_end = 1'b0;
-    assign test_bad_end = 1'b0;
+    `ifndef METRO_TILE
+        test_end_checker test_end_checker(
+            .clk                    (chipset_clk),
+            .rst_n                  (chipset_rst_n),
+
+            .src_checker_noc2_val   (chip_filter_noc2_valid),
+            .src_checker_noc2_data  (chip_filter_noc2_data),
+            .src_checker_noc2_rdy   (filter_chip_noc2_ready),
+
+            .uart_boot_en           (test_ena),
+            .test_good_end          (good_end),
+            .test_bad_end           (bad_end)
+        );
+    `endif
+//`else
+//    assign test_good_end = 1'b0;
+//    assign test_bad_end = 1'b0;
 `endif
 
 <%
@@ -1071,6 +1092,8 @@ ciop_fake_iob ciop_fake_iob(
     .noc_out_rdy       ( filter_iob_noc2_ready ),
     .noc_out_data      ( iob_filter_noc2_data  ),
 
+`ifdef METRO_CHIPSET
+//`ifndef DISABLE_ALL_MONITORS
     <%
         text = r'''
         .spc0_inst_done    (`PITON_CORE0_INST_DONE),
@@ -1085,6 +1108,7 @@ ciop_fake_iob ciop_fake_iob(
             text2 = text2.replace("PC_W0", "PC_W" + repr(i));
             print(text2)
     %>
+    `endif
     .clk               (chipset_clk),
     .rst_n             (chipset_rst_n)
 //    .rst_n             (`SPARC_CORE0.reset_l)

@@ -61,3 +61,4 @@ manycore_network_mon.v
 fake_pll.v
 manycore_top.v
 fake_uart.v
+../../../design/chipset/rtl/test_end_checker.v

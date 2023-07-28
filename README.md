@@ -1,3 +1,58 @@
+# Metro-MPI Public Release
+
+Metro-MPI is a generic methodology to distribute RTL simulation and unlock SoCs’ inherent parallelism. We leverage best practices in parallel programming from HPC to partition well-defined blocks within designs into isolated simulation processes that communicate via MPI message passing. Metro-MPI works particularly well with replicated blocks of comparable size, such as manycores with NoCs. For each cycle, each process simulates in parallel then synchronises with its neighbours.
+
+The branch metro-mpi is the main development branch for the support of metro-MPI in OpenPiton. It is the result of a Google Summer of Code 2021 project between Guillem López-Paradís, Jonathan Balkind and Stefan Wallentowitz. In addition, Brian Li has also helped in the development of the project. Metro-MPI has been accepted as a conference paper at [DATE 23'](https://ieeexplore.ieee.org/abstract/document/10137080). If you use metro-MPI in your research please reference our DATE 2023 paper:
+```
+López-Paradís, G., Li, B., Armejach, A., Wallentowitz, S., Moretó, M., and Balkind, J.
+(2023). Fast behavioural rtl simulation of 10b transistor soc designs with metro-mpi. In
+2023 Design, Automation Test in Europe Conference & Exhibition (DATE), pages 1–6.
+
+@INPROCEEDINGS{metro-mpi-paper,
+  author={López-Paradís, Guillem and Li, Brian and Armejach, Adriá and Wallentowitz, Stefan and Moretó, Miquel and Balkind, Jonathan},
+  booktitle={2023 Design, Automation \& Test in Europe Conference \& Exhibition (DATE)}, 
+  title={Fast Behavioural RTL Simulation of 10B Transistor SoC Designs with Metro-Mpi}, 
+  year={2023},
+  volume={},
+  number={},
+  pages={1-6},
+  doi={10.23919/DATE56975.2023.10137080}}
+``` 
+In order to use metro-MPI, we need to compile separately the OpenPiton chipset and tile, called metro_chipset and metro_tile, respectively.
+For example, for verilator:
+```
+cd build
+sims -vlt_build -ariane -vlt_build_args="-MAKEFLAGS CXX=mpic++ -MAKEFLAGS LINK=mpic++ " -vlt_build_args='-j 2' -config_rtl=DISABLE_ALL_MONITORS -config_rtl=MINIMAL_MONITORING -sys=metro_chipset -x_tiles=1 -y_tiles=1
+sims -vlt_build -ariane -vlt_build_args="-MAKEFLAGS CXX=mpic++ -MAKEFLAGS LINK=mpic++ " -vlt_build_args='-j 2' -config_rtl=DISABLE_ALL_MONITORS -config_rtl=MINIMAL_MONITORING -sys=metro_tile -x_tiles=1 -y_tiles=1 
+``` 
+Note: The usage of DISABLE_ALL_MONITORS and MINIMAL_MONITORING is to disable the debug print of OpenPiton NoC. In -vlt_build_args we can also add compiling optimizations flags such as -Os or -O2, as well as the support for traces (-trace), and other Verilator optimizations [documentation](https://verilator.org/guide/latest/)
+
+To execute the latest build, we execute metro_chipset in the following way:
+```
+sims -vlt_run -ariane -sys=metro_chipset -x_tiles=1 -y_tiles=1 hello_world_token.c -model_dir=$PWD -cyclesCheckFinish=10000 -cyclesCheckFinishAfter=1000
+
+```
+Note: In order to finish the simulation, since we have disabled the monitors, we have added a synchronized mechanism using the MPI broadcast. We check after a certain amount of cycles (cyclesCheckFinish), every N cycles (cyclesCheckFinishAfter) if the simulation has finished. The end of the simulation is triggered by a core doing the next store:
+```
+#define PITON_TEST_GOOD_END 0x8100000000ULL
+
+volatile unsigned long long trap;
+trap = *((unsigned long long *) PITON_TEST_GOOD_END);
+
+```  
+
+It has been tested with different versions of verilator and mpic++. We recommend:
+- verilator v4.204
+- gcc 11.3.0 
+- mpich 4.1.2
+
+Verilator 5 should work with an additional argument and minor changes:
+```
+-vlt_build_args=--no-timing
+```
+
+If you find a bug or want to discuss any feature, please open an issue. 
+
 ![OpenPiton Logo](/docs/openpiton_logo_black.png?raw=true)
 
 # OpenPiton Research Platform   [![Build Status](https://jenkins.princeton.edu/buildStatus/icon?job=cloud/piton_git_push_master)](https://jenkins.princeton.edu/job/cloud/job/piton_git_push_master/)

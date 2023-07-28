@@ -31,7 +31,8 @@
 //              +spc_pipe=<core_nu> Eg: +spc_pipe=0
 //
 ////////////////////////////////////////////////////////////////////////
-
+`ifndef MINIMAL_MONITORING
+`ifdef PITON_OST1
 `include "sys.h"
 
 module sparc_pipe_flow (clk);
@@ -1512,3 +1513,5 @@ endfunction
 `endif // ifdef GATE_SIM
 
 endmodule
+`endif //PITON_OST1
+`endif //MINIMAL_MONITORING

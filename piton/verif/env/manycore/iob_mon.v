@@ -39,7 +39,7 @@
 
 
 
-
+`ifndef MINIMAL_MONITORING
 `include "sys.h"
 `include "iop.h"
 `include "cross_module.tmp.h"
@@ -64,4 +64,4 @@ end
 
 
 endmodule
-
+`endif //ifndef MINIMAL_MONITORING

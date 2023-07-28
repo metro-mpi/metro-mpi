@@ -20,7 +20,8 @@
 //
 // ========== Copyright Header End ============================================
 ////////////////////////////////////////////////////////
-
+`ifndef MINIMAL_MONITORING
+`ifdef PITON_OST1
 `include "sys.h"
 `include "iop.h"
 `include "lsu.tmp.h"
@@ -4595,3 +4596,5 @@ module sas_intf (/*AUTOARG*/
 `endif // ifdef SAS_DISABLE
 
 endmodule // sas_intf
+`endif //ifdef PITON_OST1
+`endif //ifndef MINIMAL_MONITORING

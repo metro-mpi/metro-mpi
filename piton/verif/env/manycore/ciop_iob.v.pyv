@@ -69,7 +69,11 @@ reg [7:0] out_write_index_next;
 
 integer i;
 
+`ifndef METRO_CHIPSET
 always @ (posedge `CHIP.clk_muxed)
+`else // ifndef METRO_CHIPSET
+always @ (posedge `TOP_MOD_INST.chipset_clk)
+`endif // ifndef METRO_CHIPSET
 begin
     if (!rst_n)
         out_write_index <= 0;
@@ -209,7 +213,11 @@ integer cpx_driven;
 // cmp clock domain
 // trin bug #65: use reference clock from the chip b/c the fake iob
 // needs to monitor the core PC
+`ifndef METRO_CHIPSET
 always @(negedge `CHIP.clk_muxed)
+`else // ifndef METRO_CHIPSET
+always @(negedge `TOP_MOD_INST.chipset_clk)
+`endif // ifndef METRO_CHIPSET
 begin
     if(ok_iob)
     begin

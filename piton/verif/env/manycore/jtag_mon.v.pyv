@@ -20,7 +20,7 @@
 //
 // ========== Copyright Header End ============================================
 ////////////////////////////////////////////////////////
-
+`ifndef MINIMAL_MONITORING
 `include "sys.h"
 `include "iop.h"
 `include "cross_module.tmp.h"
@@ -232,3 +232,4 @@ for i in range (MAX_CORE_COUNT):
 
 
 endmodule
+`endif //ifndef MINIMAL_MONITORING

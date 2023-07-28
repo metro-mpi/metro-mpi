@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `include "define.tmp.h"
 
 <%
-HOME_ID_WIDTH = 6
+HOME_ID_WIDTH = 10
 %>
 
 module l15_home_encoder(

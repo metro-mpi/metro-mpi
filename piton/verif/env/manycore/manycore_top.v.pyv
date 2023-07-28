@@ -46,6 +46,13 @@ import "DPI-C" function void init_jbus_model_call(string str, int oram);
 `timescale 1ps/1ps
 module cmp_top (
 `ifdef VERILATOR
+`ifdef DISABLE_ALL_MONITORS
+output wire                           good_end,
+output wire                           bad_end,
+input  wire                           test_ena,
+`endif // DISABLE_ALL_MONITORS
+//`endif
+
 input reg                             core_ref_clk,
 
 input reg                             sys_rst_n,
@@ -61,7 +68,7 @@ input reg [1:0]                       clk_mux_sel,
 input reg                             async_mux,
 input                                 diag_done,
 input                                 ok_iob
-`endif
+`endif //VERILATOR
 );
 
 //////////////////////
@@ -81,6 +88,9 @@ reg                             async_mux;
 // For simulation only, monitor stuff.  Only cross-module referenced
 // do not delete.
 reg                             diag_done;
+wire                            good_end;		
+wire                            bad_end;		
+reg                             test_ena;
 `endif // ifndef VERILATOR
 
 reg                             io_clk;
@@ -135,7 +145,11 @@ always @ * chipset_clk_osc_n = ~chipset_clk_osc_p;
 
 always #5000 chipset_clk_osc = ~chipset_clk_osc;                // 100MHz
 
+`ifndef SYNC_MUX
 always #2500 chipset_clk = ~chipset_clk;                        // 200MHz
+`else
+always @ * chipset_clk = core_ref_clk;
+`endif
 
 always #3333 passthru_clk_osc_p = ~passthru_clk_osc_p;          // 150MHz
 always @ * passthru_clk_osc_n = ~passthru_clk_osc_p;
@@ -155,10 +169,15 @@ always #25000 spi_sys_clk = ~spi_sys_clk;                       // 20MHz
 `ifndef VERILATOR
 initial
 begin
+    //$dumpfile({"manycore.vcd"});
+    //$dumpvars(0, cmp_top);
     // These are not referenced elsewhere in this module,
     // but are cross referenced from monitor.v.pyv.  Do not
     // delete
     fail_flag = 1'b0;
+    stub_done = 4'b0;
+    stub_pass = 4'b0;
+    test_ena = 1'b1;
 
     // Clocks initial value
     core_ref_clk = 1'b0;
@@ -413,6 +432,15 @@ system system(
 
     // Do not provide any functionality
     .leds()
+
+
+`ifdef DISABLE_ALL_MONITORS
+    ,
+    .good_end(good_end),
+    .bad_end(bad_end),
+    .test_ena(test_ena)
+`endif
+
 );
 
 ////////////////////////////////////////////////////////
@@ -565,6 +593,14 @@ system system(
         if (prev_tx_state != tx) begin
             $display("UART: TX changed to %d at", tx, $time);
         end*/
+
+`ifdef DISABLE_ALL_MONITORS
+    always @(posedge core_ref_clk) begin
+        if (test_ena && (good_end || bad_end)) begin
+            $finish();
+        end
+    end
+`endif
 
 endmodule // cmp_top
 

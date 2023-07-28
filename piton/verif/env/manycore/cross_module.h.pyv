@@ -29,7 +29,7 @@
     import os
 
     #MAX_THREAD = 128;
-    MAX_TILE = 64;
+    MAX_TILE = 1024;
 
     PITON_NUM_TILES = int(os.environ.get('PTON_NUM_TILES', '-1'))
     #print "//num_tiles:", num_tiles
@@ -69,18 +69,40 @@
     `define SIM_TOP     jtag_testbench_top.helper
     `define TOP_MOD_INST `TOP_MOD
 `else
+`ifdef METRO_CHIPSET
+    `define TOP_MOD     metro_chipset
+    `define SIM_TOP     metro_chipset
+    `define TOP_MOD_INST `TOP_MOD.chipset
+`else // ifdef METRO_CHIPSET
+`ifdef METRO_TILE
+    `define TOP_MOD     metro_tile
+    `define SIM_TOP     metro_tile
+    `define TOP_MOD_INST `TOP_MOD.tile0
+`else // ifdef METRO_TILE
     `define TOP_MOD     cmp_top
     `define SIM_TOP     cmp_top
     `define TOP_MOD_INST `TOP_MOD.system
+`endif // ifdef METRO_TILE
+`endif // ifdef METRO_CHIPSET
 // TODO: Alexey: use PITON_PROTO define ?
 //`define TOP_MOD      fpga_top.cmp_top
-`endif
+`endif // ifdef JTAG_TB_XMODULE
 
 //`define SIM_TOP fpga_top.cmp_top
 
     // `define TOP_SHELL    cmp_top_shell
 `define CHIP         `TOP_MOD_INST.chip
+
+`ifdef METRO_CHIPSET
+`define CHIP_INT_CLK `TOP_MOD.chipset_clk
+`else // ifdef METRO_CHIPSET
+`ifdef METRO_TILE
+`define CHIP_INT_CLK core_ref_clk
+`else // ifdef METRO_TILE
 `define CHIP_INT_CLK `CHIP.clk_muxed
+`endif // ifdef METRO_TILE
+`endif // ifdef METRO_CHIPSET
+
 `define TOP_DESIGN   `TOP_MOD.chip
 `define FAKE_IOB     `TOP_MOD.system.chipset.chipset_impl.ciop_fake_iob
 // `define TOP_MEMORY   `TOP_MOD.cmp
@@ -98,8 +120,12 @@
 <%
 for i in range(PITON_NUM_TILES):
     printstring = """
+    `ifdef METRO_TILE
+    `define TILE%d            `TOP_MOD_INST
+    `else // ifdef METRO_TILE
     `define TILE%d            `CHIP.tile%d
-    `define ARIANE_CORE%d     `TILE%d.g_ariane_core.core.ariane.i_cva6
+    `endif // ifdef METRO_TILE
+    `define ARIANE_CORE%d     `TILE%d.g_ariane_core.core.ariane
     `define SPARC_CORE%d      `TILE%d.g_sparc_core.core
     `define PICO_CORE%d       `TILE%d.g_picorv32_core.core
     `define CCX_TRANSDUCER%d  `TILE%d.g_sparc_core.ccx_l15_transducer
@@ -194,12 +220,17 @@ for i in range(PITON_NUM_TILES):
 `endif
     `define CFG_ASI_PATH%d    `SPARC_CORE%d.sparc0.cfg_asi
 
+`ifdef METRO_CHIPSET
+    `define PITON_CORE%d_INST_DONE  1'b0
+    `define PITON_CORE%d_PC_W%d     40'b0
+`else // ifdef METRO_CHIPSET
     `define PITON_CORE%d_INST_DONE  `TOP_MOD.monitor.pc_cmp.spc%d_inst_done
 `ifdef RTL_SPARC%d
     `define PITON_CORE%d_PC_W%d     `PCPATH%d.fdp.pc_w
 `else
     `define PITON_CORE%d_PC_W%d     `TOP_MOD.monitor.pc_cmp.spc%d_phy_pc_w
 `endif
+`endif // ifdef METRO_CHIPSET
 
     """
     printstring = printstring.replace("%d", str(i))
