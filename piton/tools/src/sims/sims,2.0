@@ -239,6 +239,10 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'vlt_build' => 0,
         'vlt_build_args' => [],
         'vlt_run' => 0,
+        'vlt_xml' => 0,
+        'mmpi_o1' => 0,
+        'mmpi_xml' => 0,
+        'preproc_only' => 0,
         'version' => 0,
         'vfile' => [],
         'mem_init_py' => "",
@@ -348,6 +352,10 @@ GetOptions (\%opt,
             'simslog!',
             'simslog_name=s',
             'vlt_build' => 0,
+            'vlt_xml!' => \$opt{vlt_xml},
+            'mmpi_o1!' => \$opt{mmpi_o1},
+            'mmpi_xml!' => \$opt{mmpi_xml},
+            'preproc_only!' => \$opt{preproc_only},
             'build_id=s',
            ) ;
 
@@ -1528,43 +1536,274 @@ sub generic_sim_build
     }
 	
     if ($opt{vlt_build}) {
-      $build_cmd = "verilator -cc -build " ;
-      foreach my $top_n (@{$opt{toplevel}}) {
-        $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
-      }
-      # improvable
-      foreach my $top_n (@{$opt{toplevel}}) {
-        $build_cmd .= "--top-module $top_n ";
-      }
-      $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
-      $build_cmd .= "-Wno-fatal " ;
-      $build_cmd .= "-Wno-BLKANDNBLK " ;
-      $build_cmd .= "-Wno-TIMESCALEMOD " ;
-      $build_cmd .= "-DPITON_DPI " ;
-      $build_cmd .= "--unroll-count 256 " ;
-      $build_cmd .= "-CFLAGS -DVERILATOR " ;
-      $build_cmd .= "-CFLAGS -DPITON_DPI " ;
-      $build_cmd .= "-CFLAGS -lstdc++ " ;
-      $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
-      $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+      if($opt{vlt_xml} && $opt{sys} eq "metro_tile"){
+        $build_cmd = "verilator -Wall -cc -xml-only -xml-output tile.xml " ;
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+        }
+        # improvable
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "--top-module $top_n ";
+        }
+        $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+        $build_cmd .= "-Wno-fatal " ;
+        $build_cmd .= "-Wno-BLKANDNBLK " ;
+        $build_cmd .= "-Wno-TIMESCALEMOD " ;
+        $build_cmd .= "-DPITON_DPI " ;
+        $build_cmd .= "--unroll-count 256 " ;
+        # $build_cmd .= "-CFLAGS -DVERILATOR " ;
+        # $build_cmd .= "-CFLAGS -DPITON_DPI " ;
+        # $build_cmd .= "-CFLAGS -lstdc++ " ;
+        # $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+        # $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
 
-     #print("====================================\n");
-     #print("$pton_x_tiles");
-     #print("$ENV{PITON_X_TILES}");
-     #print("====================================\n");
+      #print("====================================\n");
+      #print("$pton_x_tiles");
+      #print("$ENV{PITON_X_TILES}");
+      #print("====================================\n");
 
-     #die("dsfs");
-      
-      if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
-        $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
-        $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+      #die("dsfs");
+        
+        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+          $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
+          $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+        }
+      }
+      elsif($opt{vlt_xml} && $opt{sys} eq "metro_chipset"){
+        $build_cmd = "verilator -Wall -cc -xml-only -xml-output chipset.xml " ;
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+        }
+        # improvable
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "--top-module $top_n ";
+        }
+        $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+        $build_cmd .= "-Wno-fatal " ;
+        $build_cmd .= "-Wno-BLKANDNBLK " ;
+        $build_cmd .= "-Wno-TIMESCALEMOD " ;
+        $build_cmd .= "-DPITON_DPI " ;
+        $build_cmd .= "--unroll-count 256 " ;
+        # $build_cmd .= "-CFLAGS -DVERILATOR " ;
+        # $build_cmd .= "-CFLAGS -DPITON_DPI " ;
+        # $build_cmd .= "-CFLAGS -lstdc++ " ;
+        # $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+        # $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+
+      #print("====================================\n");
+      #print("$pton_x_tiles");
+      #print("$ENV{PITON_X_TILES}");
+      #print("====================================\n");
+
+      #die("dsfs");
+        
+        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+          $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
+          $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+        }
+      }
+      elsif($opt{vlt_xml} && $opt{sys} eq "manycore"){
+        $build_cmd = "verilator -Wall -cc -xml-only -xml-output manycore.xml " ;
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+        }
+        # improvable
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "--top-module $top_n ";
+        }
+        $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+        $build_cmd .= "-Wno-fatal " ;
+        $build_cmd .= "-Wno-BLKANDNBLK " ;
+        $build_cmd .= "-Wno-TIMESCALEMOD " ;
+        $build_cmd .= "-DPITON_DPI " ;
+        $build_cmd .= "--unroll-count 256 " ;
+        # $build_cmd .= "-CFLAGS -DVERILATOR " ;
+        # $build_cmd .= "-CFLAGS -DPITON_DPI " ;
+        # $build_cmd .= "-CFLAGS -lstdc++ " ;
+        # $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+        # $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+
+      #print("====================================\n");
+      #print("$pton_x_tiles");
+      #print("$ENV{PITON_X_TILES}");
+      #print("====================================\n");
+
+      #die("dsfs");
+        
+        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+          $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
+          $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+        }
+      }
+      elsif($opt{mmpi_o1} && $opt{sys} eq "manycore"){
+        $build_cmd = "verilator -cc -build --mmpi-o1 --d1 " ;
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+        }
+        # improvable
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "--top-module $top_n ";
+        }
+        $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+        $build_cmd .= "-Wno-fatal " ;
+        $build_cmd .= "-Wno-BLKANDNBLK " ;
+        $build_cmd .= "-Wno-TIMESCALEMOD " ;
+        $build_cmd .= "-DPITON_DPI " ;
+        $build_cmd .= "--unroll-count 256 " ;
+        $build_cmd .= "-CFLAGS -DVERILATOR " ;
+        $build_cmd .= "-CFLAGS -DPITON_DPI " ;
+        $build_cmd .= "-CFLAGS -lstdc++ " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+
+      #print("====================================\n");
+      #print("$pton_x_tiles");
+      #print("$ENV{PITON_X_TILES}");
+      #print("====================================\n");
+
+      #die("dsfs");
+        
+        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+          $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
+          $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+        }
+        
+      }
+      elsif($opt{mmpi_xml} && $opt{sys} eq "manycore"){
+        $build_cmd = "verilator -cc -build --mmpi-xml --threads 1 " ;
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+        }
+        # improvable
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "--top-module $top_n ";
+        }
+        $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+        $build_cmd .= "-Wno-fatal " ;
+        $build_cmd .= "-Wno-BLKANDNBLK " ;
+        $build_cmd .= "-Wno-TIMESCALEMOD " ;
+        $build_cmd .= "-DPITON_DPI " ;
+        $build_cmd .= "--unroll-count 256 " ;
+        $build_cmd .= "-CFLAGS -DVERILATOR " ;
+        $build_cmd .= "-CFLAGS -DPITON_DPI " ;
+        $build_cmd .= "-CFLAGS -lstdc++ " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+
+      #print("====================================\n");
+      #print("$pton_x_tiles");
+      #print("$ENV{PITON_X_TILES}");
+      #print("====================================\n");
+
+      #die("dsfs");
+        
+        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+          $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
+          $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+        }
+        
+      }
+      elsif($opt{preproc_only} && $opt{sys} eq "manycore"){
+        #  --E  ==> pre-process only, dump to stdout
+        #  -Wall keeps warnings (optional)
+        $build_cmd = "verilator -E -Wall ";
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+        }
+        # improvable
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "--top-module $top_n ";
+        }
+        $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+        $build_cmd .= "-Wno-fatal " ;
+        $build_cmd .= "-Wno-BLKANDNBLK " ;
+        $build_cmd .= "-Wno-TIMESCALEMOD " ;
+        $build_cmd .= "-DPITON_DPI " ;
+        $build_cmd .= "--unroll-count 256 " ;
+        $build_cmd .= "-CFLAGS -DVERILATOR " ;
+        $build_cmd .= "-CFLAGS -DPITON_DPI " ;
+        $build_cmd .= "-CFLAGS -lstdc++ " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+
+      #print("====================================\n");
+      #print("$pton_x_tiles");
+      #print("$ENV{PITON_X_TILES}");
+      #print("====================================\n");
+
+      #die("dsfs");
+        
+      }
+      else{
+        $build_cmd = "verilator -cc -build " ;
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+        }
+        # improvable
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $build_cmd .= "--top-module $top_n ";
+        }
+        $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+        $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+        $build_cmd .= "-Wno-fatal " ;
+        $build_cmd .= "-Wno-BLKANDNBLK " ;
+        $build_cmd .= "-Wno-TIMESCALEMOD " ;
+        $build_cmd .= "-DPITON_DPI " ;
+        $build_cmd .= "--unroll-count 256 " ;
+        $build_cmd .= "-CFLAGS -DVERILATOR " ;
+        $build_cmd .= "-CFLAGS -DPITON_DPI " ;
+        $build_cmd .= "-CFLAGS -lstdc++ " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+        $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+
+      #print("====================================\n");
+      #print("$pton_x_tiles");
+      #print("$ENV{PITON_X_TILES}");
+      #print("====================================\n");
+
+      #die("dsfs");
+        
+        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
+          $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
+          $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+        }
       }
     }
+
     if ($opt{other_sim_build}) {
       if (($opt{other_sim_build_cmd}) eq "") {
         die ("DIE. other_sim_build_cmd not defined");
@@ -2289,17 +2528,17 @@ sub assemble_diag
       }
       if (!$opt{rv32_march}) {
         if ($opt{pico}) {
-          $ENV{RV32_MARCH} = "rv32ima" ;
+          $ENV{RV32_MARCH} = "rv32imafdc_zicsr" ;
         }
       } else {
-        $ENV{RV32_MARCH} = $opt{rv32_march} ;
+        $ENV{RV32_MARCH} = "rv32imafdc_zicsr" ;
       }
       if (!$opt{rv32_mabi}) {
         if ($opt{pico}) {
-          $ENV{RV32_MABI} = "ilp32" ;
+          $ENV{RV32_MABI} = "ilp32d" ;
         }
       } else {
-        $ENV{RV32_MABI} = $opt{rv32_mabi} ;
+        $ENV{RV32_MABI} = "ilp32d" ;
       }
       print "$prg: assembling 32bit riscv diag (RV32IM)\n" ;
       my $cmd = "rv32_as " ;
@@ -2321,17 +2560,17 @@ sub assemble_diag
       }
       if (!$opt{rv64_march}) {
         if ($opt{ariane}) {
-          $ENV{RV64_MARCH} = "rv64imafdc" ;
+          $ENV{RV64_MARCH} = "rv64imafdc_zicsr" ;
         }
       } else {
-        $ENV{RV64_MARCH} = $opt{rv64_march} ;
+        $ENV{RV64_MARCH} = "rv64imafdc_zicsr" ;
       }
       if (!$opt{rv64_mabi}) {
         if ($opt{ariane}) {
           $ENV{RV64_MABI} = "lp64d" ;
         }
       } else {
-        $ENV{RV64_MABI} = $opt{rv64_mabi} ;
+        $ENV{RV64_MABI} = "lp64d" ;
       }
       # only recompile if necessary
       if (!$opt{precompiled}) {

@@ -1,3 +1,49 @@
+# Metro-MPI++
+
+Required Modifications to use the new verilator here-
+
+1. First do `make all` in the root directory to do the required modifications.
+
+2. go to `piton/design/chip/tile/ariane/tmp/verilator-5.036/include/verilated.mk` and modify the following code block -
+```
+# Precompile a header file
+# PCH's compiler flags must match exactly the rules' above FAST/SLOW
+# arguments used for the .cpp files, or the PCH file won't be used.
+%.fast.gch: %
+	$(OBJCACHE) $(CXX) $(OPT_FAST) $(CXXFLAGS) $(CPPFLAGS) $(CFG_CXXFLAGS_PCH) $< -o $@
+%.slow.gch: %
+	$(OBJCACHE) $(CXX) $(OPT_SLOW) $(CXXFLAGS) $(CPPFLAGS) $(CFG_CXXFLAGS_PCH) $< -o $@
+```
+with 
+```
+# Precompile a header file
+# PCH's compiler flags must match exactly the rules' above FAST/SLOW
+# arguments used for the .cpp files, or the PCH file won't be used.
+%.fast.gch: %
+	$(OBJCACHE) $(CXX) $(OPT_FAST) $(CXXFLAGS) $(CPPFLAGS) $(CFG_CXXFLAGS_PCH) $< -c -o $@
+%.slow.gch: %
+	$(OBJCACHE) $(CXX) $(OPT_SLOW) $(CXXFLAGS) $(CPPFLAGS) $(CFG_CXXFLAGS_PCH) $< -c -o $@
+```
+
+3. Install `lib-sodium`
+```
+sudo apt-get update
+sudo apt-get install libsodium-dev
+```
+
+and 
+```
+export LIBS="-lsodium"
+```
+4. If got `ci/install-verilator.sh: Permission denied` during building then give executable permission to the bash file
+```
+chmod +x piton/design/chip/tile/ariane/ci/install-verilator.sh
+```
+
+5. Then use `sims -sys=manycore -x_tiles=2 -y_tiles=2 -vlt_build -ariane -mmpi_o1` or any other design with --mmpi-o1 and --d1 arguments
+
+6. If facing `Can't exec "bw_cpp": No such file or directory at /home/kislay/metro-mpi-private/piton/tools/src/sims/sims,2.0 line 2300.` error then try checking if you have c-shell installed by `which csh`, if not there ```sudo apt-get install csh``` and also give executable permissions to the `bw_cpp` file by `chmod +x`.
+
 # Metro-MPI Public Release
 
 Metro-MPI is a generic methodology to distribute RTL simulation and unlock SoCs’ inherent parallelism. We leverage best practices in parallel programming from HPC to partition well-defined blocks within designs into isolated simulation processes that communicate via MPI message passing. Metro-MPI works particularly well with replicated blocks of comparable size, such as manycores with NoCs. For each cycle, each process simulates in parallel then synchronises with its neighbours.

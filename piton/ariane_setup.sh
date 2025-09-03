@@ -80,7 +80,7 @@ if [ "$RISCV" ==  "" ]
 then
   export RISCV=$HOME/scratch/riscv_install
 fi
-export VERILATOR_ROOT=$ARIANE_ROOT/tmp/verilator-4.014/
+export VERILATOR_ROOT=$ARIANE_ROOT/tmp/verilator-5.036/
 
 # setup paths
 export PATH=$RISCV/bin:$VERILATOR_ROOT/bin:$PATH
@@ -88,6 +88,7 @@ export LIBRARY_PATH=$RISCV/lib
 export LD_LIBRARY_PATH=$RISCV/lib
 export C_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
 export CPLUS_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
+export LIBS="-lsodium"
 
 # source OpenPiton setup script
 # note: customize this script to reflect your tool setup

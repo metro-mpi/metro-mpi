@@ -27,6 +27,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Vcmp_top.h"
 #include "verilated.h"
 #include <iostream>
+
+// just trying
+#include "iob.h"
+#include "b_ary.h"
+
 #ifdef VERILATOR_VCD
 #include "verilated_vcd_c.h"
 #endif
@@ -59,6 +64,29 @@ void tick() {
     tfp->dump(main_time);
 #endif
 }
+
+    static b_tree_node_ptr sysMem;//b_try for memory
+    static iob iob_inst; //("diag.ev");
+
+    //define dummy structure for static variable.
+    struct static_for_pli{
+    b_tree_atom_ptr data[32];
+    KeyType      last_addr[32];
+    };
+    static static_for_pli pli_var;
+    /*------------------------------------------
+    initialize all variable to be used in this env.
+    -------------------------------------------*/
+
+    void init_jbus_model_call(char *str, int oram) {
+    int   idx;
+
+    iob_inst.manual_init((char *)"diag.ev");
+    sysMem              = b_create();//create
+    if (!oram)
+            read_mem(str, &sysMem);//read memory
+    for(idx = 0; idx < 32; idx++)pli_var.last_addr[idx] = oram ? -1 : 0;
+    }
 
 void reset_and_init() {
     

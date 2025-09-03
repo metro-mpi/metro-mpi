@@ -927,7 +927,8 @@ if (L2_WAYS < 8):
     print("""if (addr_S2[`L2_ADDR_OP] == {`L2_ADDR_OP_WIDTH{1'b0}})
             begin
             `ifndef METRO_TILE
-                return_data_S2 = {{(`L2_P1_DATA_BUF_IN_WIDTH - `L2_STATE_DATA_WIDTH){1'b0}}, state_data_trans_S2[`L2_STATE_DATA]};
+                localparam PAD_BITS = `L2_STATE_DATA_WIDTH >= `L2_P1_DATA_BUF_IN_WIDTH ? 0 : `L2_P1_DATA_BUF_IN_WIDTH - `L2_STATE_DATA_WIDTH;
+                return_data_S2 = {{(PAD_BITS){1'b0}}, state_data_trans_S2[`L2_STATE_DATA]};
             `else
                 //WE BROKE THIS TOO, ONLY USE FOR METRO-MPI
                 return_data_S2 = 64'b0;
