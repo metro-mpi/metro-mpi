@@ -1133,7 +1133,7 @@ sub gen_flist
 
     open (IFLIST, "< $flist") or die ("DIE. can't open flist file $flist") ;
 
-    print "$flist\n";
+    print "exa_mark $flist\n";
 
     while (<IFLIST>) {
       my $line = $_ ;
@@ -1173,14 +1173,14 @@ sub gen_flist
 
       # Tri
       # Now we run pyphp
-
+      print("exa_regs $line at $base  what is $1 here \n");
       my $ibmfile = (split(' ',substr($line, 0, -1)))[-1] . ".ibm.v";
       if ($opt{ibm} and -e $ibmfile) {
            $line = $ibmfile . "\n";
            # print("debug: IBM sram found: $line\n");
       } else {
         my $linepyv = (split(' ',substr($line, 0, -1)))[-1] . ".pyv";
-        # print("\$linepyv is $linepyv\n");
+        print(" exa_mark_pyv \$linepyv is $linepyv\n");
         my $linetmp = substr($line, 0, -3) . ".tmp.". substr($line, -2, 1);
         my $linetmpout = (split(' ',substr($line, 0, -3)))[-1] . ".tmp." . substr($line, -2, 1);
         if (-e $linepyv) {
@@ -1528,20 +1528,20 @@ sub generic_sim_build
     }
 	
     if ($opt{vlt_build}) {
-      $build_cmd = "verilator -cc -build " ;
+      $build_cmd = "verilator -cc -build --threads --prof-threads --prof-cfuncs " ;
       foreach my $top_n (@{$opt{toplevel}}) {
-        $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+	$build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
       }
       # improvable
       foreach my $top_n (@{$opt{toplevel}}) {
         $build_cmd .= "--top-module $top_n ";
       }
       $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
-      $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+#      $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
+#      $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;
+#      $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
+#      $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
+#      $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
       $build_cmd .= "-Wno-fatal " ;
       $build_cmd .= "-Wno-BLKANDNBLK " ;
       $build_cmd .= "-Wno-TIMESCALEMOD " ;
@@ -1550,7 +1550,7 @@ sub generic_sim_build
       $build_cmd .= "-CFLAGS -DVERILATOR " ;
       $build_cmd .= "-CFLAGS -DPITON_DPI " ;
       $build_cmd .= "-CFLAGS -lstdc++ " ;
-      $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+#      $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
 
      #print("====================================\n");
@@ -1563,6 +1563,8 @@ sub generic_sim_build
       if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset") {
         $build_cmd .= "-CFLAGS -DX_TILES=$pton_x_tiles " ;
         $build_cmd .= "-CFLAGS -DY_TILES=$pton_y_tiles " ;
+        $build_cmd .= "-CFLAGS -ggdb " ;
+        $build_cmd .= "-CFLAGS -pg " ;
       }
     }
     if ($opt{other_sim_build}) {
@@ -1842,13 +1844,13 @@ if ($opt{riv_run}) {
 
       if ($opt{sys} eq "metro_chipset") {
         #### --oversubscribe --output-filename filename
-        $cmd .= "mpirun -np 1 --oversubscribe --output-filename filename $model_path/obj_dir/Vmetro_chipset " ;
+        $cmd .= "mpirun -np 1 --oversubscribe --output-filename filename $model_path/obj_dir/Vmetro_chipset  " ;
         $cmd .= join (" ", $opt{cyclesCheckFinish}) ;
         $cmd .= " " ;
         $cmd .= join (" ", $opt{cyclesCheckFinishAfter}) ;
         $cmd .= " " ;
         $cmd .= join (" ", @{$opt{sim_run_args}}) ;
-                $cmd .= " : -np $ENV{PITON_NUM_TILES} --oversubscribe --output-filename filename $model_path/../../metro_tile/rel-0.1/obj_dir/Vmetro_tile ";
+                $cmd .= " : -np $ENV{PITON_NUM_TILES} --oversubscribe --output-filename filename $model_path/../../metro_tile/rel-0.1/obj_dir/Vmetro_tile  ";
 	    $cmd .= join (" ", $opt{cyclesCheckFinish}) ;
         $cmd .= " " ;
         $cmd .= join (" ", $opt{cyclesCheckFinishAfter}) ;

@@ -275,7 +275,7 @@ int main(int argc, char **argv, char **env) {
     rank = getRank();
     size = getSize();
     
-    //std::cout << "CHIPSET size: " << size << ", rank: " << rank <<  std::endl;
+    std::cout << "CHIPSET size: " << size << ", rank: " << rank <<  std::endl;
     if (rank==0) {
         dest = 1;
     } else {

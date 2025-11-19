@@ -100,6 +100,19 @@ void init_jbus_model_call(){
           read_mem(str, &sysMem);//read memory
   for(idx = 0; idx < 32; idx++)pli_var.last_addr[idx] = oram ? -1 : 0;
 }
+
+
+//void init_jbus_model_call(char *str, int oram) {
+//  int   idx;
+//  str       = (char *) "mem.image";
+//  oram      = 0;
+//
+//  iob_inst.manual_init((char *)"diag.ev");
+//  sysMem              = b_create();//create
+//  if (!oram)
+//          read_mem(str, &sysMem);//read memory
+//  for(idx = 0; idx < 32; idx++)pli_var.last_addr[idx] = oram ? -1 : 0;
+//}
 /*------------------------------------------
 handle the cmp clock domain jobs.
 -------------------------------------------*/
